@@ -3,6 +3,7 @@ import glob
 import xarray as xr
 import pandas as pd
 from sqlalchemy import create_engine
+import psycopg2
 
 print("Initializing Data Transformation Pipeline...")
 
@@ -44,13 +45,30 @@ for file_path in nc_files:
     if 'actual_precip_mm' in df.columns:
         df['actual_precip_mm'] = df['actual_precip_mm'] * 1000 # Meters → mm
 
+    # Clean up unnecessary coordinate columns that Copernicus includes
+    cols_to_drop = ['number', 'expver']
+    df = df.drop(columns=[c for c in cols_to_drop if c in df.columns])
+
     # Drop rows with NaN values
     df = df.dropna()
 
-    print(f"Flattened dataset contains {len(df)} rows.")
-    print("Sample of processed data:")
-    print(df[['latitude', 'longitude', 'reading_timestamp', 'temp_celsius', 'actual_precip_mm']].head())
+    print(f"Flattened dataset contains {len(df)} rows. Injecting to PostGIS...")
+    
+    # --- SQL INJECTION ---
+    # Push dataframe directly to the 'climate_data' table
+    try:
+        df.to_sql(
+            name='climate_data',
+            con=engine,
+            if_exists='append', # Adds rows without dropping the table
+            index=False,        # We don't need pandas index numbers in SQL
+            chunksize=50000     # Safely upload 50k rows at a time
+        )
+        print(f"✅ Successfully injected {file_path} into SQL!")
+    except Exception as e:
+        print(f"❌ SQL Injection failed for {file_path}. Error: {e}")
+        break # Stop the script so we can debug
 
     ds.close() # Free memory
 
-print("\nTransformation test complete! Ready for SQL injection phase.")
+print("\nTransformation and Injection pipeline complete!")

@@ -8,6 +8,7 @@ import xarray as xr
 os.makedirs('data/raw', exist_ok=True)
 c = cdsapi.Client()
 
+# N , W , S , E
 pnw_bounding_box = [49.0, -125.0, 42.0, -114.0]
 
 years = ['2021', '2022', '2023']
