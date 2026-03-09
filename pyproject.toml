@@ -1,0 +1,18 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["src/data", "src/models"]
+omit = [
+    "src/data/01_download_era5.py",
+    "src/data/03_test_query.py",
+]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+exclude_lines = [
+    "if __name__",
+    "pragma: no cover",
+]
