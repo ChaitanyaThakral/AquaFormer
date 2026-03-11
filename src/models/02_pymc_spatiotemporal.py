@@ -99,3 +99,25 @@ def build_and_sample_model(df: pd.DataFrame, draws: int = 2000, tune: int = 1000
         raise RuntimeError(f"MCMC chains did not converge! Max R-hat ({max_rhat}) > 1.01. Pipeline halted.")
         
     return idata
+
+def extract_moisture_posteriors(idata: az.InferenceData) -> pd.DataFrame:
+    """
+    Extract the posterior mean and standard deviation for the latent moisture 
+    levels at every grid point.
+    
+    Args:
+        idata: The InferenceData object returned by the MCMC sampler.
+        
+    Returns:
+        pd.DataFrame containing 'moisture_mean' and 'moisture_sd' for each grid point.
+    """
+    # Extract the posterior summary for the 'latent_moisture' variable
+    summary = az.summary(idata, var_names=['latent_moisture'])
+    
+    # Construct a clean DataFrame with the mathematically sound probabilities/metrics
+    posteriors_df = pd.DataFrame({
+        'moisture_mean': summary['mean'].values,
+        'moisture_sd': summary['sd'].values
+    })
+    
+    return posteriors_df

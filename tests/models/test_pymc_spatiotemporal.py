@@ -7,6 +7,7 @@ import pymc as pm
 import importlib
 pymc_spat = importlib.import_module("src.models.02_pymc_spatiotemporal")
 build_and_sample_model = pymc_spat.build_and_sample_model
+extract_moisture_posteriors = pymc_spat.extract_moisture_posteriors
 
 @pytest.fixture
 def dummy_weather_data():
@@ -69,3 +70,27 @@ def test_pymc_spatiotemporal_model_compiles_and_samples(dummy_weather_data):
     
     assert n_chains > 0
     assert n_draws == draws
+
+def test_extract_moisture_posteriors(dummy_weather_data):
+    """Test extracting the posterior metrics from the InferenceData."""
+    draws = 10
+    tune = 10
+    from unittest.mock import patch
+    
+    # First, get the idata
+    dummy_summary = pd.DataFrame({'r_hat': [1.0]})
+    with patch.object(pymc_spat.az, 'summary', return_value=dummy_summary):
+        idata = build_and_sample_model(
+            df=dummy_weather_data, 
+            draws=draws, 
+            tune=tune
+        )
+        
+    # Now test the extraction function
+    # Note: We are outside the patch block, so az.summary behaves normally.
+    posteriors_df = extract_moisture_posteriors(idata)
+    
+    assert isinstance(posteriors_df, pd.DataFrame)
+    assert len(posteriors_df) == len(dummy_weather_data)
+    assert 'moisture_mean' in posteriors_df.columns
+    assert 'moisture_sd' in posteriors_df.columns
