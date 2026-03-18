@@ -11,3 +11,6 @@ htmlcov/
 
 # Data (too large for git)
 data/raw/*.nc
+
+# TensorBoard logs
+runs/
