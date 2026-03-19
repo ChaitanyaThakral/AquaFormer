@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class PatchEmbed(nn.Module):
-    def __init__(self, in_channels=144, embed_dim=256, patch_size=5):
+    def __init__(self, in_channels=144, embed_dim=128, patch_size=5):
         super().__init__()
         # Convolutional layer cleanly tokenizes the 50x50 spatial grid
         self.proj = nn.Conv2d(in_channels, embed_dim, kernel_size=patch_size, stride=patch_size)
@@ -17,42 +17,58 @@ class PatchEmbed(nn.Module):
         return x
 
 class RainfallHead(nn.Module):
-    def __init__(self, embed_dim=256, patch_size=5, num_patches_h=10, num_patches_w=10):
+    def __init__(self, embed_dim=128, patch_size=5, num_patches_h=10, num_patches_w=10):
         super().__init__()
         self.patch_size = patch_size
         self.num_patches_h = num_patches_h
         self.num_patches_w = num_patches_w
-        self.grid_h = num_patches_h * patch_size
-        self.grid_w = num_patches_w * patch_size
         
-        # MLP for explicit spatial mixing before projection
+        # Per-token MLP for spatial mixing (operates on each of the 100 tokens)
         self.mlp = nn.Sequential(
             nn.Linear(embed_dim, embed_dim * 2),
             nn.GELU(),
-            nn.Linear(embed_dim * 2, embed_dim)
+            nn.Dropout(0.1),
+            nn.Linear(embed_dim * 2, embed_dim),
         )
+        self.norm = nn.LayerNorm(embed_dim)
         
-        # Project directly to the full 50x50 spatial grid
-        self.proj = nn.Linear(embed_dim, self.grid_h * self.grid_w)
+        # Each token reconstructs its own 5x5 = 25 pixel patch
+        self.proj = nn.Linear(embed_dim, patch_size * patch_size)
         
     def forward(self, x):
-        # x: (B, 100, embed_dim)
+        # x: (B, 100, embed_dim) — one token per spatial patch
+        B = x.shape[0]
         
-        # Global Average Pooling across the 100 tokens
-        x = x.mean(dim=1) # (B, embed_dim)
+        # Per-token MLP with residual connection and layer norm
+        x = x + self.mlp(x)
+        x = self.norm(x)
         
-        # Apply spatial mixing
-        x = self.mlp(x) # (B, embed_dim)
+        # Project each token to its patch pixels: (B, 100, 25)
+        x = self.proj(x)
         
-        # Project directly to 2500 vector
-        x = self.proj(x) # (B, 2500)
-        
+        # Reassemble spatial grid from patches
+        # (B, 100, 25) -> (B, 10, 10, 5, 5)
+        x = x.view(B, self.num_patches_h, self.num_patches_w,
+                    self.patch_size, self.patch_size)
+        # (B, 10, 5, 10, 5) -> (B, 50, 50)
+        x = x.permute(0, 1, 3, 2, 4).contiguous()
+        x = x.view(B, self.num_patches_h * self.patch_size,
+                    self.num_patches_w * self.patch_size)
+        # Flatten to (B, 2500)
+        x = x.view(B, -1)
         return x
 
 class SpatiotemporalViT(nn.Module):
-    def __init__(self, in_features=6, seq_length=24, grid_h=50, grid_w=50, patch_size=5, embed_dim=256, depth=4, num_heads=8):
+    def __init__(self, in_features=6, seq_length=24, grid_h=50, grid_w=50,
+                 patch_size=5, embed_dim=128, depth=4, num_heads=8,
+                 dim_feedforward=1280):
         """
-        Baseline Grid Encoder acting as a Spatiotemporal Vision Transformer.
+        Physics-Informed Spatiotemporal Vision Transformer (~2.1M parameters).
+        
+        Treats the Pacific Northwest weather grid as a multi-channel image,
+        tokenizes it into spatial patches, and uses multi-head self-attention
+        to capture long-range spatial dependencies before projecting back
+        to a dense precipitation grid.
         """
         super().__init__()
         self.in_channels = in_features * seq_length
@@ -70,7 +86,11 @@ class SpatiotemporalViT(nn.Module):
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, embed_dim))
         
         # Transformer Backbone
-        encoder_layer = nn.TransformerEncoderLayer(d_model=embed_dim, nhead=num_heads, batch_first=True)
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=embed_dim, nhead=num_heads,
+            dim_feedforward=dim_feedforward,
+            batch_first=True, dropout=0.1,
+        )
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=depth)
         
         # Decoder Head

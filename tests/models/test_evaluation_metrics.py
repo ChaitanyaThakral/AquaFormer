@@ -89,15 +89,16 @@ def test_rare_event_r2_masking():
 
 
 def test_rare_event_r2_bad_predictions():
-    """When predictions on extreme events are completely wrong, R² should be low."""
+    """When predictions on extreme events are constant (no signal), correlation R² should be 0."""
     torch.manual_seed(0)
     n = 10000
     y_true = torch.arange(n, dtype=torch.float32)
-    y_pred = torch.zeros(n)  # Predict 0 everywhere
+    y_pred = torch.zeros(n)  # Predict 0 everywhere (zero variance)
 
     r2 = calculate_rare_event_r2(y_pred, y_true, percentile_val=99.0)
-    assert r2.item() < 0.0, \
-        f"Rare-event R² should be negative for constant-zero predictions, got {r2.item()}"
+    # Constant predictions have zero variance → Pearson r is 0 → r² = 0
+    assert r2.item() < 0.05, \
+        f"Rare-event correlation R² should be ~0 for constant predictions, got {r2.item()}"
 
 
 def test_rare_event_r2_too_few_pixels():
