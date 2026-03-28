@@ -53,7 +53,7 @@ if __name__ == '__main__':
     print("Initializing Data Transformation Pipeline...")
 
     # 1. Connect to the PostGIS Docker Database
-    engine = create_engine('postgresql://postgres:admin@localhost:5433/aquaformer')
+    engine = create_engine('postgresql://postgres:admin@localhost:5435/aquaformer')
 
     # 2. Find all downloaded NetCDF files
     data_dir = 'data/raw'
