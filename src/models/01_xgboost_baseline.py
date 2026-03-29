@@ -46,7 +46,7 @@ def train_model(X_train: pd.DataFrame, y_train: pd.Series, scale_pos_weight: flo
 
 if __name__ == '__main__':
     # STEP 1: CONNECT TO DATABASE & PULL DATA
-    engine = create_engine('postgresql://postgres:admin@localhost:5433/aquaformer')
+    engine = create_engine('postgresql://postgres:admin@localhost:5435/aquaformer')
 
     query = """
         SELECT reading_timestamp, temp_celsius, pressure_hpa, wind_u_vector, wind_v_vector, actual_precip_mm

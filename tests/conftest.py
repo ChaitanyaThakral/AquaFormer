@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 @pytest.fixture(scope="session")
 def db_engine():
     """Shared PostgreSQL engine for live-DB validation tests."""
-    engine = create_engine('postgresql://postgres:admin@localhost:5433/aquaformer')
+    engine = create_engine('postgresql://postgres:admin@localhost:5435/aquaformer')
     yield engine
     engine.dispose()
 
