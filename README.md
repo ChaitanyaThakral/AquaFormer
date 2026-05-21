@@ -23,7 +23,7 @@ The system is built on **34.3 million ERA5 climate records**, served through a *
 - Achieved **0.63 R²** on **99th percentile rainfall events** with a **2.2M-parameter physics-informed Vision Transformer**.
 - Improved substantially over a baseline **XGBoost recall of 28%** on extreme events.
 - Reduced **physically impossible predictions to zero** through constraint-aware training.
-- Delivered **15ms cached / 120ms uncached** API latency with Redis-backed inference caching.
+- Delivered **14ms cached / 110ms uncached** API latency with Redis-backed inference caching.
 - Maintained **97% test coverage across 57 integration tests**.
 
 ***
@@ -225,8 +225,8 @@ The final system was deployed as a **Dockerized FastAPI service** with **Redis c
 
 ### Latency
 
-- **~120ms uncached inference**
-- **~15ms cached response time**
+- **~110ms uncached inference**
+- **~14ms cached response time**
 
 Caching is especially valuable for spatial forecasting systems, where repeated requests for the same location and timestamp are common.
 

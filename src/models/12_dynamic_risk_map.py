@@ -27,7 +27,7 @@ def main():
     
     # Find timestamp for Dec 4, 2023
     # timestamps are numpy datetime64
-    target_date = np.datetime64('2023-12-04T12:00:00')
+    target_date = np.datetime64('2023-12-25T12:00:00')
     idx = np.abs(timestamps - target_date).argmin()
     
     actual_time = timestamps[idx]
