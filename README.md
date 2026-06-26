@@ -19,7 +19,7 @@ The system is built on **34.3 million ERA5 climate records**, served through a *
 
 ### Selected Results
 
-![Test Heatmap](heatmap.png)
+![Risk Map](risk_map.png)
 
 - Achieved **ECE = 0.038** with a Bayesian spatiotemporal model.
 - Achieved **0.63 R²** on **99th percentile rainfall events** with a **2.2M-parameter physics-informed Vision Transformer**.
